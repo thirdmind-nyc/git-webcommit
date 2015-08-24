@@ -4,7 +4,7 @@
 	/// settings ///
 
 	// configure the list of repositories, only one support at the moment
-	$repos = Array ('/some/dir');
+	$repos = Array ('/var/www/vhosts/primaryimmune.org.new/httpdocs');
 
 	// set the default repository, you probably want to keep it set to 0
 	$defaultrepo = 0;
@@ -74,6 +74,8 @@
 			handle_change_staged_req ();
 		elseif (isset ($_POST ['commit']) && $_POST ['commit'] && isset ($_POST ['statushash']) && $_POST ['statushash'] && isset ($_POST ['commit_message']) && $_POST ['commit_message'] != '')
 			handle_commit_req ();
+		elseif (isset ($_POST ['push']) && $_POST ['push'])
+                        handle_push_req ();
 		elseif (isset ($_POST ['refresh']) && $_POST ['refresh'])
 			handle_refresh_req ();
 		else {
@@ -194,6 +196,15 @@
 		view_result ($status);
 	}
 
+	function handle_push_req () {
+                global $enable_stats, $author;
+		echo html_header_message ('git push origin master...');
+		echo html_form_start ();
+		$status = get_status (true, false, false);
+                        do_push ();
+		view_result ($status);
+	}
+
 ///////////////////////////////
 
 	function stage_file ($file, $status) {
@@ -289,6 +300,31 @@
 			exit ();
 		}
 	}
+
+	function do_push () {
+                global $gitpath;
+
+                echo html_header_message_update ("pushing to master...");
+                $args = Array ('push', 'origin', 'master');
+                debug ('git ' . implode (' ', $args));
+                $h = start_command ($gitpath, $args);
+                list ($stdout, $stderr) = get_all_data ($h, Array ('stdout', 'stderr'));
+                debug ("stdout: $stdout");
+                debug ("stderr: $stderr");
+                $exit = get_exit_code ($h);
+                debug ($exit);
+                clean_up ($h);
+
+                if ($exit === 0) {
+                        echo html_header_message_update ("push to master... OK");
+                } else {
+                        echo html_header_message_update ('push to master...: <span class="error">FAILED</a>', true);
+                        if (trim ($stderr) != '')
+                                error ("$stderr");
+                        echo html_form_end ();
+                        exit ();
+                }
+        }
 
 ///////////////////////////////
 
@@ -1003,6 +1039,7 @@ return <<<HERE
 		</article>
 		<input id="change_staged" type="submit" name="change_staged" value="change staged">
 		<input id="submit_commit" type="submit" name="commit" value="commit">
+		<input id="submit_push" type="submit" name="push" value="push">
 		<input id="submit_refresh" type="submit" name="refresh" value="refresh">
 		<input type="hidden" name="statushash" value="$hash">
 		<textarea id="commit_message" name="commit_message">$commit_message</textarea>
