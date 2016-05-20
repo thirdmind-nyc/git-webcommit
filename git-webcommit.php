@@ -1,6 +1,7 @@
 <?php
 	error_reporting (E_ALL);
 
+
 	/// settings ///
 
 	// configure the list of repositories, only one support at the moment
